@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     char largest_word [max_len];
     int in_word = 0;
     //int len = get_size("á");
-
+   
     
 
     //printf("Enter file name:\n");
@@ -26,14 +26,13 @@ int main(int argc, char *argv[])
             printf("Can't open %s for reading.\n", in_file);
         else
         {
-            while (1)
+            while (fscanf(in_file, "%s", word) != EOF)
             {
                 //int len = 0;
                 //printf("%s\n", word);
                 //++wrd;
                 for (int i = 0; word[i] != '\0';++i){
                     int len = get_size(word[i]);
-                    
                 }
 
             }
