@@ -82,7 +82,8 @@ int get_size(char * c){
 unsigned char conversor_multibyte(char ** c, int char_len){
     if(char_len == 1){
         unsigned char c_first = (*c)[0]; //first and only part of char, in this case
-        if (c_first == '´' || c_first == '`'){ //if the char is equal to left or right single
+        //c_first == '´' este dá erro
+        if (c_first == '`'){ //if the char is equal to left or right single
                                             //quotion marks, it should be converted to apostrophe
             return 0x27;
         }
@@ -92,29 +93,39 @@ unsigned char conversor_multibyte(char ** c, int char_len){
         unsigned char c_second = (*c)[1];
         if(c_first == 0xc3){
             //Á–À–Â–Ã–á–à–â–ã to A :
-            if(c_second == 0x80 || c_second == 0x81 || c_second == 0x82 || c_second == 0x83 ||
-                c_second == 0xa0 || c_second == 0xa1 || c_second == 0xa2 || c_second == 0xa3){
+            if(c_second == 0x80 || c_second == 0x81 || c_second == 0x82 || c_second == 0x83){
                 return 'A';
             }
+            else if(c_second == 0xa0 || c_second == 0xa1 || c_second == 0xa2 || c_second == 0xa3){
+                return 'a';
+            }
             //É–È–Ê–é–è–ê to E :
-            else if(c_second == 0x88 || c_second == 0x89 || c_second == 0x8a ||
-                c_second == 0xa8 || c_second == 0xa9 || c_second == 0xaa){
+            else if(c_second == 0x88 || c_second == 0x89 || c_second == 0x8a){
                 return 'E';
             }
+            else if(c_second == 0xa8 || c_second == 0xa9 || c_second == 0xaa){
+                return 'e';
+            }
             //Í–Ì–í–ì to I
-            else if(c_second == 0x8c || c_second == 0x8d ||
-                c_second == 0xac || c_second == 0xad ){
+            else if(c_second == 0x8c || c_second == 0x8d){
                 return 'I';
             }
+            else if(c_second == 0xac || c_second == 0xad ){
+                return 'i';
+            }
             //Ó–Ò–Ô–Õ–ó–ò–ô–õ
-            else if(c_second == 0x92 || c_second == 0x93 || c_second == 0x94 || c_second == 0x95 ||
-                c_second == 0xb2 || c_second == 0xb3 || c_second == 0xb4 || c_second == 0xb5){
+            else if(c_second == 0x92 || c_second == 0x93 || c_second == 0x94 || c_second == 0x95){
                 return 'O';
             }
+            else if(c_second == 0xb2 || c_second == 0xb3 || c_second == 0xb4 || c_second == 0xb5){
+                return 'o';
+            }
             //Ú–Ù–ú–ù to U
-            else if(c_second == 0x99 || c_second == 0x9a ||
-                c_second == 0xb9 || c_second == 0xba ){
+            else if(c_second == 0x99 || c_second == 0x9a){
                 return 'U';
+            }
+            else if(c_second == 0xb9 || c_second == 0xba ){
+                return 'u';
             }
             //Ç–ç to C
             else if(c_second == 0x87 || c_second == 0xa7){

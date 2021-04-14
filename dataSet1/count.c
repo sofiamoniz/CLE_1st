@@ -5,12 +5,16 @@
 
 int main(int argc, char *argv[])
 {
-    char in_name[80];
     FILE *in_file;
     char word[50];
-    int wrd ;
-    int consonant = 0;
-    int len = get_size("~");
+    int n_chars = 0 ;
+    int n_consonants = 0;
+    int n_words = 0;
+    int max_len = 50 ; //max len of word is 50
+    char largest_word [max_len];
+    int in_word = 0;
+    //int len = get_size("á");
+
     
 
     //printf("Enter file name:\n");
@@ -19,18 +23,16 @@ int main(int argc, char *argv[])
         in_file = fopen(argv[i], "r");
 
         if (in_file == NULL)
-            printf("Can't open %s for reading.\n", in_name);
+            printf("Can't open %s for reading.\n", in_file);
         else
         {
-            while (fscanf(in_file, "%s", word) != EOF)
+            while (1)
             {
+                //int len = 0;
                 //printf("%s\n", word);
                 //++wrd;
                 for (int i = 0; word[i] != '\0';++i){
-                    //printf("(%c)", word[i]);
-                    printf("The size is: %d", len);
-                    
-                    
+                    int len = get_size(word[i]);
                     
                 }
 
