@@ -3,6 +3,33 @@
 #include <stdlib.h>
 #include <locale.h>
 
+//funçao do edgar q nao entendo
+//supostamente retorna o size de cada char para depois
+//usar em conversor_multibyte
+int read_char_utf8(unsigned char c) {
+	
+	if ((c>>7)==0){
+		return 1;
+	}
+	else if ((c>>5)==6){
+		return 2;
+	}
+	else if ((c>>4)==14){
+		return 3;
+	}
+	else if ((c>>3)==30){
+		return 4;
+	}
+	else if (c==0xff){
+		return 0;
+	}
+    else if (c==0x20){
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
 //Check if is vowel | 1-> is vowel
 int is_vowel(unsigned char c){
     if(c=='a' || c=='e' || c=='i' || c=='o' || c=='u' || c=='y'){
@@ -61,18 +88,13 @@ int is_apostrophe(unsigned char c){
 //tirei daqui https://stackoverflow.com/questions/33737803/how-to-compare-multibyte-characters-in-c
 //get size of bytes read of utf-8 char
 int get_size(char * c){
-    int i=0, char_len;
+    int i=0, char_len = 0;
 
     setlocale(LC_CTYPE, "en_US.utf8");
 
     while ((char_len = mblen(&c[i], MB_CUR_MAX)) > 0)
     {
         /* &text[i] contains multibyte character of length char_len */
-        if(memcmp(&c[i], "ö", char_len) == 0)
-        {
-            printf("ö \n");
-        }
-
         i += char_len;
     }
 

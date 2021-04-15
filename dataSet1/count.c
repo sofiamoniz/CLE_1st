@@ -2,41 +2,58 @@
 #include <stdlib.h>
 #include <string.h>
 #include "functions.h"
+//correr 
+//gcc -o count count.c  
+//./count text0.txt text1.txt text2.txt text3.txt text4.txt
 
 int main(int argc, char *argv[])
 {
-    FILE *in_file;
-    char word[50];
-    int n_chars = 0 ;
-    int n_consonants = 0;
-    int n_words = 0;
-    int max_len = 50 ; //max len of word is 50
-    char largest_word [max_len];
-    int in_word = 0;
-    //int len = get_size("á");
    
+   char word[50];
     
 
     //printf("Enter file name:\n");
     //scanf("%s", in_name);
     for(int i=1; i<argc; i++){
-        in_file = fopen(argv[i], "r");
-
-        if (in_file == NULL)
-            printf("Can't open %s for reading.\n", in_file);
-        else
-        {
-            while (fscanf(in_file, "%s", word) != EOF)
-            {
-                //int len = 0;
-                //printf("%s\n", word);
-                //++wrd;
-                for (int i = 0; word[i] != '\0';++i){
-                    int len = get_size(word[i]);
-                }
-
-            }
+        char *file = argv[i];
+        FILE *f = fopen(file, "r");
+        int c;
+        if (f == NULL)
+            printf("Can't open %s for reading.\n", argv[i]);
+        else{
+            while((c = fgetc(f)) != EOF) {
+            printf("\n(%c)", c);
+            int char_bytes = read_char_utf8(c);
+            printf(" \char_bytes: %d", char_bytes);
         }
+        }
+        
+        fclose (f);
     }
+
+    /*
+    for(int i=1; i<argc; i++){
+        char *file = argv[i];
+        FILE *f = fopen(file, "r");
+        unsigned char *c_arr;
+        int status_length = read_char_utf8(f,&c_arr);
+        printf(" status_length: %d", status_length);
+
+        
+        
+        
+        
+    }
+    */
+    //unsigned char c = '–';
+    //char *pChar = malloc(sizeof(char));
+
+    /* check pChar is not null */
+
+    //*pChar = c;
+    int len = get_size("á");
+    printf(" what: %d", len);
+
+
     return 0;
 }
