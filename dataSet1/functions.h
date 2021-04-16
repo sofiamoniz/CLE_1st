@@ -6,102 +6,57 @@
 //funçao do edgar q nao entendo
 //supostamente retorna o size de cada char para depois
 //usar em conversor_multibyte
-int read_char_utf8(unsigned char c) {
-	
+int check_char_multibyte(FILE *in_file, unsigned char **char_array) {
+	unsigned char c;
+	*char_array = NULL;
+
+	if ((c = fgetc(in_file)) == EOF){
+		return 0;
+	}
+
 	if ((c>>7)==0){
+		*char_array = (unsigned char *)calloc(1, sizeof(c));
+		(*char_array)[0] = c;
 		return 1;
 	}
 	else if ((c>>5)==6){
+		unsigned char c2 = fgetc(in_file);
+		*char_array = (unsigned char *)calloc(2, sizeof(c));
+		(*char_array)[0] = c;
+		(*char_array)[1] = c2;
 		return 2;
 	}
 	else if ((c>>4)==14){
+		unsigned char c2 = fgetc(in_file);
+		unsigned char c3 = fgetc(in_file);
+		*char_array = (unsigned char *)calloc(3, sizeof(c));
+		(*char_array)[0] = c;
+		(*char_array)[1] = c2;
+		(*char_array)[2] = c3;
 		return 3;
 	}
 	else if ((c>>3)==30){
+		unsigned char c2 = fgetc(in_file);
+		unsigned char c3 = fgetc(in_file);
+		unsigned char c4 = fgetc(in_file);
+		*char_array = (unsigned char *)calloc(4, sizeof(c));
+		(*char_array)[0] = c;
+		(*char_array)[1] = c2;
+		(*char_array)[2] = c3;
+		(*char_array)[3] = c4;
 		return 4;
 	}
 	else if (c==0xff){
 		return 0;
 	}
-    else if (c==0x20){
-		return 1;
-	}
 	else {
-		return 0;
+		printf("File char format error!");
+		exit(1);
 	}
 }
-//Check if is vowel | 1-> is vowel
-int is_vowel(unsigned char c){
-    if(c=='a' || c=='e' || c=='i' || c=='o' || c=='u' || c=='y'){
-        return 1;
-    }
-    else if(c=='A' || c=='E' || c=='I' || c=='O' || c=='U' || c=='Y'){
-        return 1;
-    }
-    else{
-        return 0;
-    }
-}
 
-//Check if is alpha or underscore | 1-> is alpha or underscore
-int is_alpha_underscore(unsigned char c){
-    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
-        return 1;
-    }
-    else if((c>='0')&&(c<='9')){
-        return 1;
-    }
-    else if(c=='_'){
-        return 1;
-    }
-    else{
-        return 0;
-    }
-}
-
-//Check if ia space, separation or punctiation
-int is_space_separation_punctuation(unsigned char c){
-    if(c==' ' || c =='  ' || c==0xa){ //space
-        return 1;
-    }
-    else if(c=='-' || c=='"' || c == '[' || c ==']' || c=='(' || c==')'){ //separation
-        return 1;
-    }
-    else if(c=='.' || c == ',' || c==':' || c==';' || c == '?' || c =='!' || c == 0xE28093 || c == 0xE280A6 ){ //punctuation
-        return 1;
-    }
-    else{
-        return 0;
-    }
-}
-
-//Check if is apostrophe
-int is_apostrophe(unsigned char c){
-    if(c==0x27){
-        return 1;
-    }
-    else{
-        return 0;
-    }
-}
-
-//tirei daqui https://stackoverflow.com/questions/33737803/how-to-compare-multibyte-characters-in-c
-//get size of bytes read of utf-8 char
-int get_size(char * c){
-    int i=0, char_len = 0;
-
-    setlocale(LC_CTYPE, "en_US.utf8");
-
-    while ((char_len = mblen(&c[i], MB_CUR_MAX)) > 0)
-    {
-        /* &text[i] contains multibyte character of length char_len */
-        i += char_len;
-    }
-
-    return i;
-}
 //convert multi byte to single byte
-unsigned char conversor_multibyte(char ** c, int char_len){
+unsigned char conversor_multibyte(unsigned char ** c, int char_len){
     if(char_len == 1){
         unsigned char c_first = (*c)[0]; //first and only part of char, in this case
         //c_first == '´' este dá erro
@@ -179,3 +134,61 @@ unsigned char conversor_multibyte(char ** c, int char_len){
         exit(1);
     }
 }
+
+//Check if is vowel | 1-> is vowel
+int is_vowel(unsigned char c){
+    if(c=='a' || c=='e' || c=='i' || c=='o' || c=='u' || c=='y'){
+        return 1;
+    }
+    else if(c=='A' || c=='E' || c=='I' || c=='O' || c=='U' || c=='Y'){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+//Check if is alpha or underscore | 1-> is alpha or underscore
+int is_alpha_underscore(unsigned char c){
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+        return 1;
+    }
+    else if((c>='0')&&(c<='9')){
+        return 1;
+    }
+    else if(c=='_'){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+//Check if ia space, separation or punctiation
+int is_space_separation_punctuation(unsigned char c){
+    if(c==' ' || c =='  ' || c==0xa){ //space
+        return 1;
+    }
+    else if(c=='-' || c=='"' || c == '[' || c ==']' || c=='(' || c==')'){ //separation
+        return 1;
+    }
+    else if(c=='.' || c == ',' || c==':' || c==';' || c == '?' || c =='!' || c == 0xE28093 || c == 0xE280A6 ){ //punctuation
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+//Check if is apostrophe
+int is_apostrophe(unsigned char c){
+    if(c==0x27){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+//antigo get_size: https://stackoverflow.com/questions/33737803/how-to-compare-multibyte-characters-in-c
+

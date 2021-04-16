@@ -9,27 +9,61 @@
 int main(int argc, char *argv[])
 {
    
-   char word[50];
-    
-
-    //printf("Enter file name:\n");
-    //scanf("%s", in_name);
     for(int i=1; i<argc; i++){
         char *file = argv[i];
-        FILE *f = fopen(file, "r");
+        FILE *in_file = fopen(file, "r");
         int c;
-        if (f == NULL)
-            printf("Can't open %s for reading.\n", argv[i]);
-        else{
-            while((c = fgetc(f)) != EOF) {
-            printf("\n(%c)", c);
-            int char_bytes = read_char_utf8(c);
-            printf(" \char_bytes: %d", char_bytes);
-        }
+        int n_words = 0;
+        int n_chars = 0;
+        int n_consonants = 0;
+        int in_word = 0;
+        int max_size = 50;
+        int max_chars = 0;
+       
+        while(1){
+            unsigned char *char_array;
+            //Read char
+            int char_size = check_char_multibyte(in_file,&char_array);
+            //printf("\n(%d)", char_size);
+            if(char_size){ //if char is multibyte, convert to singlebyte
+                unsigned char new_c = conversor_multibyte(&char_array, char_size);
+                printf("\n(%c)", new_c);
+                if(in_word){
+                    if(is_space_separation_punctuation(new_c)){
+                        in_word = 0;
+                        n_words ++;
+                        //qualquer coisa para largestWord
+                    }
+                    else if(is_alpha_underscore(new_c)){
+                        n_chars ++;
+
+                    }
+                
+                }
+
+
+            }   
+            else{
+                if(in_word){
+                    if (n_chars > max_chars){
+                        max_chars = n_chars;
+                    }
+                }
+                break;
+            }
+            printf("\nN_words (%d)", max_chars);
+            fclose(in_file);
         }
         
-        fclose (f);
+        
     }
+
+    return 0;
+
+}
+
+
+
 
     /*
     for(int i=1; i<argc; i++){
@@ -51,9 +85,8 @@ int main(int argc, char *argv[])
     /* check pChar is not null */
 
     //*pChar = c;
-    int len = get_size("á");
-    printf(" what: %d", len);
+    //int len = get_size('á');
+    //printf(" what: %d", len);
 
 
-    return 0;
-}
+    
