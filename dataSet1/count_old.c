@@ -14,7 +14,9 @@ int check_vowel(char a)
     return 1;
   else    // You may omit this else as the control comes here if the character is not a vowel.
     for (int i = 0; strlen(no);++i){
-        if (a != no[i]){
+        printf("entrei");
+        if (a == no[i]){
+            printf("Reconhece");
             return 0;
         }
     }
@@ -46,9 +48,25 @@ int main(int argc, char *argv[])
                 for (int i = 0; word[i] != '\0';++i){
                     //printf("(%c)", word[i]);
                     if ((word[i] >= 'a' && word[i] <= 'z') || (word[i] >= 'A' && word[i] <= 'Z')) {
-                        if (check_vowel(word[i]) == 0){
+                        //if (check_vowel(word[i]) == 0){
                             //printf("(%c)", word[i]);
-                            consonant++;
+                            //consonant++;
+                        //}
+                        
+                    }
+                    else{
+                        char no[] = "ÁÀÂÃáàâãÉÈÊéèêÍÌíìÓÒÔÕóòôõÚÙúùÇçyY";
+                        char noA[] = "ÁÀÂÃáàâã";
+                        for (int j = 0; strlen(no);++j){
+                            printf("entrei");
+                            if (word[i] == noA[j]){
+                                printf("Reconheceeeee");
+                                
+                                return 0;
+                            }
+                            else{
+                                printf("errado");
+                            }
                         }
                     }
                     

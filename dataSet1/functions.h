@@ -1,139 +1,86 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <wchar.h>
 #include <locale.h>
 
-//funçao do edgar q nao entendo
-//supostamente retorna o size de cada char para depois
-//usar em conversor_multibyte
-int check_char_multibyte(FILE *in_file, unsigned char **char_array) {
-	unsigned char c;
-	*char_array = NULL;
 
-	if ((c = fgetc(in_file)) == EOF){
-		return 0;
-	}
-
-	if ((c>>7)==0){
-		*char_array = (unsigned char *)calloc(1, sizeof(c));
-		(*char_array)[0] = c;
-		return 1;
-	}
-	else if ((c>>5)==6){
-		unsigned char c2 = fgetc(in_file);
-		*char_array = (unsigned char *)calloc(2, sizeof(c));
-		(*char_array)[0] = c;
-		(*char_array)[1] = c2;
-		return 2;
-	}
-	else if ((c>>4)==14){
-		unsigned char c2 = fgetc(in_file);
-		unsigned char c3 = fgetc(in_file);
-		*char_array = (unsigned char *)calloc(3, sizeof(c));
-		(*char_array)[0] = c;
-		(*char_array)[1] = c2;
-		(*char_array)[2] = c3;
-		return 3;
-	}
-	else if ((c>>3)==30){
-		unsigned char c2 = fgetc(in_file);
-		unsigned char c3 = fgetc(in_file);
-		unsigned char c4 = fgetc(in_file);
-		*char_array = (unsigned char *)calloc(4, sizeof(c));
-		(*char_array)[0] = c;
-		(*char_array)[1] = c2;
-		(*char_array)[2] = c3;
-		(*char_array)[3] = c4;
-		return 4;
-	}
-	else if (c==0xff){
-		return 0;
-	}
-	else {
-		printf("File char format error!");
-		exit(1);
-	}
-}
-
-//convert multi byte to single byte
-unsigned char conversor_multibyte(unsigned char ** c, int char_len){
-    if(char_len == 1){
-        unsigned char c_first = (*c)[0]; //first and only part of char, in this case
-        //c_first == '´' este dá erro
-        if (c_first == '`'){ //if the char is equal to left or right single
-                                            //quotion marks, it should be converted to apostrophe
-            return 0x27;
-        }
-    }
-    else if(char_len == 2){
-        unsigned char c_first = (*c)[0];
-        unsigned char c_second = (*c)[1];
-        if(c_first == 0xc3){
-            //Á–À–Â–Ã–á–à–â–ã to A :
-            if(c_second == 0x80 || c_second == 0x81 || c_second == 0x82 || c_second == 0x83){
-                return 'A';
-            }
-            else if(c_second == 0xa0 || c_second == 0xa1 || c_second == 0xa2 || c_second == 0xa3){
-                return 'a';
-            }
-            //É–È–Ê–é–è–ê to E :
-            else if(c_second == 0x88 || c_second == 0x89 || c_second == 0x8a){
-                return 'E';
-            }
-            else if(c_second == 0xa8 || c_second == 0xa9 || c_second == 0xaa){
-                return 'e';
-            }
-            //Í–Ì–í–ì to I
-            else if(c_second == 0x8c || c_second == 0x8d){
-                return 'I';
-            }
-            else if(c_second == 0xac || c_second == 0xad ){
-                return 'i';
-            }
-            //Ó–Ò–Ô–Õ–ó–ò–ô–õ
-            else if(c_second == 0x92 || c_second == 0x93 || c_second == 0x94 || c_second == 0x95){
-                return 'O';
-            }
-            else if(c_second == 0xb2 || c_second == 0xb3 || c_second == 0xb4 || c_second == 0xb5){
-                return 'o';
-            }
-            //Ú–Ù–ú–ù to U
-            else if(c_second == 0x99 || c_second == 0x9a){
-                return 'U';
-            }
-            else if(c_second == 0xb9 || c_second == 0xba ){
-                return 'u';
-            }
-            //Ç–ç to C
-            else if(c_second == 0x87 || c_second == 0xa7){
-                return 'C';
-            }
-        }
+//read file and make conversion multibyte to singlebyte
+char convert_multibyte(wchar_t c){
+    switch (c) {
+        //left or right single
+        //quotion marks to apostrophe
+        case L'`': c=0x27; break;
+        case L'’': c=0x27; break;
+        case L'‘': c=0x27; break;
+        
+        //á–à–â–ã to a :
+        case L'à': c=L'a'; break;
+        case L'á': c=L'a'; break;
+        case L'â': c=L'a'; break;
+        case L'ã': c=L'a'; break;
+        //Á–À–Â–Ã to A:
+        case L'Á': c=L'A'; break;
+        case L'À': c=L'A'; break;
+        case L'Â': c=L'A'; break;
+        case L'Ã': c=L'A'; break;
+        //é–è–ê to e :
+        case L'è': c=L'e';break;
+        case L'é': c=L'e';break;
+        case L'ê': c=L'e';break;
+        //É–È–Ê to E:
+        case L'É': c=L'E';break;
+        case L'È': c=L'E';break;
+        case L'Ê': c=L'E';break;
+        //í–ì to i
+        case L'í': c=L'i';break;
+        case L'ì': c=L'i';break;
+        //Í–Ì to I
+        case L'Í': c=L'I';break;
+        case L'Ì': c=L'I';break;
+        //ó–ò–ô–õ to o
+        case L'ó': c=L'o'; break;
+        case L'ò': c=L'o'; break;
+        case L'ô': c=L'o'; break;
+        case L'õ': c=L'o'; break;
+        //Ó–Ò–Ô–Õ to O
+        case L'Ó': c=L'O'; break;
+        case L'Ò': c=L'O'; break;
+        case L'Ô': c=L'O'; break;
+        case L'Õ': c=L'O'; break;
+        //ú–ù to u
+        case L'ú': c=L'u';break;
+        case L'ù': c=L'u';break;
+        case L'ü': c=L'u';break;
+        //Ú–Ù to U
+        case L'Ú': c=L'U';break;
+        case L'Ù': c=L'U';break;
+        //Ç–ç to C
+        case L'Ç': c=L'C';break;
+        case L'ç': c=L'C';break;
         //left and right double quotation marks to double quotation mark
-        else if(c_first == 0xc2){
-            if(c_second == 0xab || c_second == 0xbb){
-                return '"';
-            }
-        }
-    }
-    else if(char_len == 3){
-        unsigned char c_first = (*c)[0];
-        unsigned char c_second = (*c)[1];
-        unsigned char c_third = (*c)[2];
+        case L'«': c=L'"';break;
+        case L'»': c=L'"';break;
+
         //dash to hyphen
-        if((c_first== 0xe2 && c_second == 0x80 ) && (c_third == 0x92 || c_third == 0x93)){
-            return '-';
-        }
+        case L'‒': c=L'-';break;
+        case L'–': c=L'-';break;
+        case L'—': c=L'-';break;
+
         //ellipsis to full point
-        else if(c_first == 0xe2 && c_second == 0x80 && c_third == 0xa6){
-            return '.';
-        }
+        case L'…': c=L'.';break;
+
+        //double quotion to "
+        case L'”': c=L'"'; break;
+        case L'“': c=L'"'; break;
+
+        default:    break;
     }
-    else{
-        printf("Error reading char.\n");
-        exit(1);
-    }
+    return c;
 }
+
+
 
 //Check if is vowel | 1-> is vowel
 int is_vowel(unsigned char c){
@@ -169,7 +116,7 @@ int is_space_separation_punctuation(unsigned char c){
     if(c==' ' || c =='  ' || c==0xa){ //space
         return 1;
     }
-    else if(c=='-' || c=='"' || c == '[' || c ==']' || c=='(' || c==')'){ //separation
+    else if ((c=='-') || (c=='"') || (c=='[')||(c==']')||(c=='(')||(c==')')){ //separation
         return 1;
     }
     else if(c=='.' || c == ',' || c==':' || c==';' || c == '?' || c =='!' || c == 0xE28093 || c == 0xE280A6 ){ //punctuation
@@ -191,4 +138,82 @@ int is_apostrophe(unsigned char c){
 }
 
 //antigo get_size: https://stackoverflow.com/questions/33737803/how-to-compare-multibyte-characters-in-c
+_Bool is_utf8(const char * string)
+{
+    if(!string)
+        return 0;
 
+    const unsigned char * bytes = (const unsigned char *)string;
+    while(*bytes)
+    {
+        if( (// ASCII
+             // use bytes[0] <= 0x7F to allow ASCII control characters
+                bytes[0] == 0x09 ||
+                bytes[0] == 0x0A ||
+                bytes[0] == 0x0D ||
+                (0x20 <= bytes[0] && bytes[0] <= 0x7E)
+            )
+        ) {
+            bytes += 1;
+            continue;
+        }
+
+        if( (// non-overlong 2-byte
+                (0xC2 <= bytes[0] && bytes[0] <= 0xDF) &&
+                (0x80 <= bytes[1] && bytes[1] <= 0xBF)
+            )
+        ) {
+            bytes += 2;
+            continue;
+        }
+
+        if( (// excluding overlongs
+                bytes[0] == 0xE0 &&
+                (0xA0 <= bytes[1] && bytes[1] <= 0xBF) &&
+                (0x80 <= bytes[2] && bytes[2] <= 0xBF)
+            ) ||
+            (// straight 3-byte
+                ((0xE1 <= bytes[0] && bytes[0] <= 0xEC) ||
+                    bytes[0] == 0xEE ||
+                    bytes[0] == 0xEF) &&
+                (0x80 <= bytes[1] && bytes[1] <= 0xBF) &&
+                (0x80 <= bytes[2] && bytes[2] <= 0xBF)
+            ) ||
+            (// excluding surrogates
+                bytes[0] == 0xED &&
+                (0x80 <= bytes[1] && bytes[1] <= 0x9F) &&
+                (0x80 <= bytes[2] && bytes[2] <= 0xBF)
+            )
+        ) {
+            bytes += 3;
+            continue;
+        }
+
+        if( (// planes 1-3
+                bytes[0] == 0xF0 &&
+                (0x90 <= bytes[1] && bytes[1] <= 0xBF) &&
+                (0x80 <= bytes[2] && bytes[2] <= 0xBF) &&
+                (0x80 <= bytes[3] && bytes[3] <= 0xBF)
+            ) ||
+            (// planes 4-15
+                (0xF1 <= bytes[0] && bytes[0] <= 0xF3) &&
+                (0x80 <= bytes[1] && bytes[1] <= 0xBF) &&
+                (0x80 <= bytes[2] && bytes[2] <= 0xBF) &&
+                (0x80 <= bytes[3] && bytes[3] <= 0xBF)
+            ) ||
+            (// plane 16
+                bytes[0] == 0xF4 &&
+                (0x80 <= bytes[1] && bytes[1] <= 0x8F) &&
+                (0x80 <= bytes[2] && bytes[2] <= 0xBF) &&
+                (0x80 <= bytes[3] && bytes[3] <= 0xBF)
+            )
+        ) {
+            bytes += 4;
+            continue;
+        }
+
+        return 0;
+    }
+
+    return 1;
+}

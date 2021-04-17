@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "string_view": "c",
-        "array": "cpp"
+        "array": "cpp",
+        "random": "cpp"
     }
 }
