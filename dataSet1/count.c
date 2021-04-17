@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 		printf("\n");
 
 
-		//Print  number words percentage
+		//FINAL PRINT
 		printf("   ");
 		for(int j = 0; j<max_chars; j++){
 			double s = (double)soma[j];
@@ -105,14 +105,14 @@ int main(int argc, char *argv[])
 		}
 		printf("\n");
 
-		//Print lines of table
-		for(int j = 0; j<max_chars+1; j++){ //Iterate consonant numbers/lines
+	
+		for(int j = 0; j<max_chars+1; j++){ 
 			printf("%2d ", j);
-			for(int k = 0; k<max_chars; k++){ //Iterate word lengths
+			for(int k = 0; k<max_chars; k++){ 
 				if(k<j-1){
-					printf("      "); //6 spaces
+					printf("      ");
 				}
-				else if(soma[k]==0){ //Prevent NaN/division by zero
+				else if(soma[k]==0){ 
 					double r = 0;
 					printf("%5.1f ", r);
 				}
