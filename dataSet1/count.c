@@ -17,7 +17,6 @@ int main(int argc, char *argv[])
         int in_word = 0;
         int max_size = 50;
         int max_chars = 0;
-        int n_unrecognized_char = 0;
         //array for countings - max size of word is 50
         int **counting_array = (int **)calloc(50, sizeof(int *));
 		for (int j = 0; j<50; j++){
@@ -46,7 +45,6 @@ int main(int argc, char *argv[])
                     continue;
                 }
                 else{
-                    n_unrecognized_char++;
                     wprintf(L"Cannot identify %lc\n", c);
                 }
             }
@@ -68,17 +66,12 @@ int main(int argc, char *argv[])
                     n_consonants = 0;
                 }
                 else{
-                    n_unrecognized_char++;
                     wprintf(L"Cannot identify %lc\n", c);
                 }
             }
         }
         fclose(f);  
-        printf(" number of words: %d\n", n_words);
-
-        if(n_unrecognized_char){
-			printf("Could not recognize %d chars.\n", n_unrecognized_char);
-		}
+        printf("Total words: %d\n", n_words);
 
 		printf("   ");
 		for(int j = 0; j<max_chars; j++){
