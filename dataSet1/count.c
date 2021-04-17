@@ -41,7 +41,8 @@ int main(int argc, char *argv[])
                 }
                 else{
                     n_unrecognized_char++;
-                    printf("Cannot identify %c\n)", converted_char);
+                    wprintf(L"Cannot identify %lc\n", c);
+                    //printf("Cannot identify %c\n)", converted_char);
                 }
             }
             else{
@@ -62,8 +63,8 @@ int main(int argc, char *argv[])
                 }
                 else{
                     n_unrecognized_char++;
-                    //wprintf(L"%lc", c);
-                    printf("Cannot identify %c\n", converted_char);
+                    wprintf(L"Cannot identify %lc\n", c);
+                    //printf("Cannot identify %c\n", converted_char);
                 }
             }
         }
