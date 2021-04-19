@@ -35,7 +35,7 @@ int main(int argc, char *argv[]){
         }
     }
 
-    storeFileNames(3, filenames); 
+    storeFileNames(argc-2, filenames); 
 
     for(int t=0; t<nThreads; t++)   { 
         if (pthread_join (tIdWork[t], (void *) &status_p) != 0)                                       
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]){
 
     //printProcessingResults();
 
-        return 0; 
+    return 0; 
 }
 
 
@@ -68,46 +68,29 @@ double computeValue(int nElements, double X[], double Y[], int point) {
 static void *worker (void *par) {
 
     unsigned int id = *((unsigned int *) par);  
-    usleep(5000000);
-    for (int fileID=0; fileID<1; fileID++) {
-        int point = 0;
+    usleep(3000000);
 
-        FILE *fp;
-        fp = fopen(fileNamesRegion[fileID], "rb");
-        if (fp == NULL) { 
-            printf("Cannot open file \n"); 
-            exit(0); 
-        } 
+    int nElements;
 
-        int nElements;
-        fread(&nElements, sizeof(int), 1, fp);
+    int fileID;
 
-        double elementsX[nElements];
-        fread(elementsX, sizeof (double), nElements, fp);
+    int point;
 
-        double elementsY[nElements];
-        fread(elementsY, sizeof (double), nElements, fp);
+    double elementsX[1024];
+    double elementsY[1024];
 
-        double elementsXY[nElements];
 
-        fclose(fp);
-
-        while (processConvPoint (id, &fileID, &nElements, elementsX, elementsY, &point) != 1) {
-            double xy = computeValue(nElements, elementsX, elementsY, point);
-            savePartialResult(id, fileID, point, xy);
-            elementsXY[point] = xy;
-            point++;
-        }
-
-        fp = fopen(fileNamesRegion[fileID], "ab");
-        if (fp == NULL) { 
-            printf("Cannot open file \n"); 
-            exit(0); 
-        } 
-        fwrite(elementsXY, sizeof(elementsXY), 1, fp);
+    while (processConvPoint (id, &fileID, &nElements, elementsX, elementsY, &point) != 1) {
+        double xy = computeValue(nElements, elementsX, elementsY, point);
+        savePartialResult(id, fileID, point, xy);
     }
+
 
     int status = EXIT_SUCCESS;
     pthread_exit(&status);
 }
 
+
+
+
+        

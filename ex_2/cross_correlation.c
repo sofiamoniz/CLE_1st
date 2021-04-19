@@ -32,7 +32,9 @@ int main(int agrc, char *argv[]) {
             xy = 0.0;
             for (int k = 0; k<nElements; k++) {
                 xy = xy + (elementsX[k] * elementsY[(j+k) % nElements]); 
+                
             }
+            printf("%f\n",xy);
             elementsXY[j] = xy;
         }
 
