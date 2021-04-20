@@ -17,8 +17,10 @@ extern int fileCurrentlyProcessed;
 
 void storeFileNames (int nFileNames, char *fileNames[]);
 
-int processConvPoint(int threadId, int *fileId, int *n, double *x,double *y, int *point);
+int processConvPoint(int threadId, int *fileId, int *n, double **x,double **y, int *point);
 
 void savePartialResult (int threadId, int fileId, int point, double val);
+
+void checkProcessingResults();
 
 #endif

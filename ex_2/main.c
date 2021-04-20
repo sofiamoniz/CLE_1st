@@ -26,7 +26,10 @@ int main(int argc, char *argv[]){
     unsigned int work[nThreads]; 
     int *status_p;
 
-    for (int t=0; t<nThreads; t++) work[t] = t;                                 
+    for (int t=0; t<nThreads; t++) work[t] = t;   
+
+    storeFileNames(argc-2, filenames); 
+                           
 
     for(int t=0; t<nThreads; t++) {
         if (pthread_create (&tIdWork[t], NULL, worker, &work[t]) != 0)                              /* thread worker */
@@ -35,7 +38,6 @@ int main(int argc, char *argv[]){
         }
     }
 
-    storeFileNames(argc-2, filenames); 
 
     for(int t=0; t<nThreads; t++)   { 
         if (pthread_join (tIdWork[t], (void *) &status_p) != 0)                                       
@@ -49,7 +51,7 @@ int main(int argc, char *argv[]){
     double tStop = ((double) clock ()) / CLOCKS_PER_SEC;
     printf ("\nElapsed time = %.6f s\n", tStop - tStart);
 
-    //printProcessingResults();
+    checkProcessingResults();
 
     return 0; 
 }
@@ -67,8 +69,7 @@ double computeValue(int nElements, double X[], double Y[], int point) {
 
 static void *worker (void *par) {
 
-    unsigned int id = *((unsigned int *) par);  
-    usleep(3000000);
+    unsigned int id = *((unsigned int *) par); 
 
     int nElements;
 
@@ -76,19 +77,21 @@ static void *worker (void *par) {
 
     int point;
 
-    double elementsX[1024];
-    double elementsY[1024];
+    double *elementsX;
+    double *elementsY;
 
 
-    while (processConvPoint (id, &fileID, &nElements, elementsX, elementsY, &point) != 1) {
+    while (processConvPoint (id, &fileID, &nElements, &elementsX, &elementsY, &point) != 1) {
         double xy = computeValue(nElements, elementsX, elementsY, point);
+        //printf("%f\n",xy);
         savePartialResult(id, fileID, point, xy);
     }
-
 
     int status = EXIT_SUCCESS;
     pthread_exit(&status);
 }
+
+
 
 
 

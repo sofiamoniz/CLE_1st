@@ -4,13 +4,14 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <errno.h>
+#include <string.h>
 
 /** \brief storage region */
-char *fileNamesRegion[3];
-
-double results[3][1024];
+static char ** fileNamesRegion;
 
 int fileCurrentlyProcessed = 0;
+
+static int nFiles;
 
 
 typedef struct {
@@ -19,6 +20,7 @@ typedef struct {
    double *x;
    double  *y;
    double *xy;
+   double *xyCorrect;
    int point;
 } Signal;
 
@@ -45,8 +47,7 @@ static pthread_cond_t regionEmpty;
  *  Internal monitor operation.
  */
 
-static void initialization (void)
-{                                                                            
+static void initialization (void) {                                                                            
   empty = true;                                                                                  
 
   pthread_cond_init (&regionFull, NULL);                                 
@@ -66,11 +67,16 @@ void storeFileNames (int nFileNames, char *fileNames[]) {
     
     pthread_once(&init, initialization);
 
+    nFiles = nFileNames;
+
     signals = (Signal*)malloc(sizeof(Signal) * nFileNames);
-    
+
+    fileNamesRegion = malloc(nFileNames * sizeof(char*));
+
     for (int i=0; i<nFileNames; i++) {
 
-        fileNamesRegion[i] = fileNames[i];
+        fileNamesRegion[i] = malloc((12) * sizeof(char));
+        strcpy(fileNamesRegion[i], fileNames[i]);
         signals[i].fileId = i;
 
         FILE *fp;
@@ -90,9 +96,9 @@ void storeFileNames (int nFileNames, char *fileNames[]) {
         signals[i].x = (double*)malloc(sizeof(double) * nElements);
         signals[i].y = (double*)malloc(sizeof(double) * nElements);
         signals[i].xy = (double*)malloc(sizeof(double) * nElements);
+        signals[i].xyCorrect = (double*)malloc(sizeof(double) * nElements);
 
-        
-
+    
         double elementsX[nElements];
         fread(elementsX, sizeof (double), nElements, fp);
 
@@ -116,8 +122,32 @@ void storeFileNames (int nFileNames, char *fileNames[]) {
 
         fclose(fp);
 
-        
+        FILE *fp2;
+
+        char name[16];
+        sprintf(name, "newSigVal0%c.bin", fileNames[i][7]);
+;
+        fp2 = fopen(name, "rb");
+
+        if (fp2 == NULL) { 
+            printf("Error %s",name);
+            exit(0); 
+        } 
+        int n;
+        fread(&n, sizeof(int), 1, fp);
+        double X[n];
+        fread(X, sizeof (double), n, fp);
+        double Y[n];
+        fread(Y, sizeof (double), n, fp);
+        double XY[n];
+        fread(XY, sizeof (double), n, fp);
+
+        for(int t=0;t<nElements;t++) signals[i].xyCorrect[t] = XY[t];
+
+        fclose(fp2);
+   
     }
+
 
     empty = false;                                                                      
 
@@ -143,7 +173,8 @@ void storeFileNames (int nFileNames, char *fileNames[]) {
     
 }
 
-int processConvPoint(int threadId, int *fileId, int *n, double *x, double *y, int *point) {
+int processConvPoint(int threadId, int *fileId, int *n, double **x, double **y, int *point) {
+
 
     if ((pthread_mutex_lock (&accessCR)) != 0) {                                                           
         perror ("error on entering monitor(CF)");
@@ -159,41 +190,57 @@ int processConvPoint(int threadId, int *fileId, int *n, double *x, double *y, in
         int status = EXIT_FAILURE;
         pthread_exit(&status);
         }
-    }
+    }   
+
+    if (signals[fileCurrentlyProcessed].point == signals[fileCurrentlyProcessed].signalSize) {
+        
+        if (fileCurrentlyProcessed == nFiles - 1) {
+            if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                           
+                perror ("error on exiting monitor(CF)");
+                int status = EXIT_FAILURE;
+                pthread_exit(&status);
+            }
+            return 1;
+        }
+        else {
+            fileCurrentlyProcessed++;
+            
+        }
+    }   
+
+    double* tmpX = calloc(signals[fileCurrentlyProcessed].signalSize, sizeof(double));
+    double* tmpY = calloc(signals[fileCurrentlyProcessed].signalSize, sizeof(double));
+
+
+    *point = signals[fileCurrentlyProcessed].point;   
+
+    //printf("worker: %d, point: %d\n", threadId, signals[fileCurrentlyProcessed].point);
+
+    *n = signals[fileCurrentlyProcessed].signalSize;
+
+
+    
+    *fileId = fileCurrentlyProcessed;
+    
+    for(int t=0;t<*n;t++) *(tmpX+t) = signals[fileCurrentlyProcessed].x[t];
+    for(int t=0;t<*n;t++) *(tmpY+t) = signals[fileCurrentlyProcessed].y[t];
+
+    signals[fileCurrentlyProcessed].point++;
+
+    free(*x);
+    *x = tmpX;
+
+    free(*y);
+    *y = tmpY;
 
     if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                           
         perror ("error on exiting monitor(CF)");
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
-    
-
-
-    //*fileId = fileCurrentlyProcessed;
-
-
-    int nFiles = 2;
-
-    
-
-    *point = signals[fileCurrentlyProcessed].point;
-
-    *n = signals[fileCurrentlyProcessed].signalSize;
-    
-    for(int t=0;t<*n;t++) x[t] = signals[fileCurrentlyProcessed].x[t];
-    for(int t=0;t<*n;t++) y[t] = signals[fileCurrentlyProcessed].y[t];
-
-    signals[fileCurrentlyProcessed].point = signals[fileCurrentlyProcessed].point + 1;
-
-    if (signals[fileCurrentlyProcessed].point == *n+1) {
-        
-         if (fileCurrentlyProcessed == nFiles - 1) return 1;
-         else {
-             fileCurrentlyProcessed++;
-         }
-    }
 
     return 0;
+
 }
 
 
@@ -207,23 +254,38 @@ void savePartialResult (int threadId, int fileId, int point, double val) {
 
     pthread_once (&init, initialization);                                           
 
-    results[fileId][point] = val;
+    signals[fileId].xy[point] = val;
 
-    FILE *fp;
-    fp = fopen(fileNamesRegion[fileId], "ab");
-    if (fp == NULL) { 
-        printf("Cannot open file \n"); 
-        exit(0); 
-    } 
-    fwrite((const void*) & val,sizeof(double),1,fp);
-
-    fclose(fp);
 
     if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                           
         perror ("error on exiting monitor(CF)");
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
-
     
+}
+
+void checkProcessingResults() {
+
+    for(int i=0;i<nFiles;i++) {
+        for(int t=0;t<signals[i].signalSize;t++) {
+            if(signals[i].xy[t]!=signals[i].xyCorrect[t]) printf("Incorrect: %f\n",signals[i].xyCorrect[t]);
+        }
+    }
+
+    /**
+    FILE *fp;
+    for(int i=0;i<nFiles;i++) {
+        
+        fp = fopen(fileNamesRegion[i], "ab");
+        if (fp == NULL) { 
+            printf("Cannot open file \n"); 
+            exit(0); 
+        } 
+
+        for(int t=0;t<signals[i].signalSize;t++) fwrite((const void*) & signals[i].xy[t],sizeof(double),1,fp);
+
+        fclose(fp);
+    }
+    **/
 }
