@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "stdio.h": "c",
-        "string_view": "c",
-        "tuple": "c"
-    }
-}

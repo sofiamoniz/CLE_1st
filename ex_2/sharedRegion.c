@@ -1,3 +1,23 @@
+/**
+ *  \file sharedRegion.c
+ *
+ *  \brief Problem: Assignment 1 - Multithreading (circular cross-correlation)
+ *
+ *  Synchronization based on monitors (Lampson / Redell)  - SHARED REGION (accessed by main thread and one or multiple workers)
+ *
+ *  Definition of the operations carried out by the main thread:
+ *     \li storeFileNames.
+ * 
+ *  Definition of the operations carried out by the producers / consumers:
+ *     \li processConvPoint
+ *     \li savePartialResult
+ *     \li checkProcessingResults
+ * 
+ * 
+ *
+ *  \author Alina Yanchuk e Sofia Moniz
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -6,286 +26,240 @@
 #include <errno.h>
 #include <string.h>
 
-/** \brief storage region */
+/** \brief file names storage region */
 static char ** fileNamesRegion;
 
-int fileCurrentlyProcessed = 0;
-
+/** \brief total number of files to process */
 static int nFiles;
 
+/** \brief file being currently processed */
+int fileCurrentlyProcessed = 0;
 
+/** \brief variable to control the first time of processing each file */
+bool firstProcessing = true;
+
+/** \brief struct to store data to process signal of one file*/
 typedef struct {
-   int  fileId;
-   int signalSize;
-   double *x;
-   double  *y;
-   double *xy;
-   double *xyCorrect;
-   int point;
+   int  fileId;    /* file with data */  
+   int signalLenght;  /* length of signals */  
+   double *x;   /* signal X */          
+   double  *y;   /* signal Y */ 
+   double *xy;   /* will store the calculated signal XY */ 
+   double *xyCorrect;   /* correct signal XY */ 
+   int point;   /* point of processing */ 
+   bool done;   /* to control the end of processing */ 
 } Signal;
 
+/** \brief all signals */
 static Signal * signals; 
-
-/** \brief flag signaling the data transfer region is full */
-static bool empty;
 
 /** \brief locking flag which warrants mutual exclusion inside the monitor */
 static pthread_mutex_t accessCR = PTHREAD_MUTEX_INITIALIZER;
 
-/** \brief flag which warrants that the data transfer region is initialized exactly once */
-static pthread_once_t init = PTHREAD_ONCE_INIT;;
-
-/** \brief producers synchronization point when the data transfer region is full */
-static pthread_cond_t regionFull;
-
-/** \brief consumers synchronization point when the data transfer region is empty */
-static pthread_cond_t regionEmpty;
 
 /**
- *  \brief Initialization of the data transfer region.
+ *  \brief Store the filenames in the file names region.
  *
- *  Internal monitor operation.
+ *  Operation carried out by main thread.
  */
 
-static void initialization (void) {                                                                            
-  empty = true;                                                                                  
+void storeFileNames(int nFileNames, char *fileNames[]) {
+  
+    if ((pthread_mutex_lock (&accessCR)) != 0) {                             /* enter monitor */                       
+       perror ("error on entering monitor(CF)");                            /* save error in errno */
+       int status = EXIT_FAILURE;
+       pthread_exit(&status);
+    }
+    
+    nFiles = nFileNames;                     /* number of files */
 
-  pthread_cond_init (&regionFull, NULL);                                 
-  pthread_cond_init (&regionEmpty, NULL);                                
-}
+    signals = (Signal*)malloc(sizeof(Signal) * nFiles);   /* memory allocation for the signals*/
 
+    fileNamesRegion = malloc(nFiles * sizeof(char*));   /* memory allocation for the region storing the filenames*/
 
-void storeFileNames (int nFileNames, char *fileNames[]) {
-   
-    if ((pthread_mutex_lock (&accessCR)) != 0) {                                                           
-       perror ("error on entering monitor(CF)");
+    for (int i=0; i<nFileNames; i++) {
+        fileNamesRegion[i] = malloc((12) * sizeof(char));    /* memory allocation for the filenames*/
+        strcpy(fileNamesRegion[i], fileNames[i]);
+        signals[i].done = false;                            /* initialization variable done of each signal  */
+    }
+
+    if ((pthread_mutex_unlock (&accessCR)) != 0) {                   /* exit monitor */                                                
+       perror ("error on exiting monitor(CF)");                     /* save error in errno */
        int status = EXIT_FAILURE;
        pthread_exit(&status);
     }
 
-    printf("Storing files.\n");
-    
-    pthread_once(&init, initialization);
+}
 
-    nFiles = nFileNames;
 
-    signals = (Signal*)malloc(sizeof(Signal) * nFileNames);
+/**
+ *  \brief Process one convolution point of the current file being processed
+ *
+ *  Operation carried out by workers.
+ */
 
-    fileNamesRegion = malloc(nFileNames * sizeof(char*));
+int processConvPoint(int threadId, int *fileId, int *n, double **x, double **y, int *point) {
 
-    for (int i=0; i<nFileNames; i++) {
+    if ((pthread_mutex_lock (&accessCR)) != 0) {                     /* enter monitor */        
+        perror ("error on entering monitor(CF)");                   /* save error in errno */
+        int status = EXIT_FAILURE;
+        pthread_exit(&status);
+    }
 
-        fileNamesRegion[i] = malloc((12) * sizeof(char));
-        strcpy(fileNamesRegion[i], fileNames[i]);
-        signals[i].fileId = i;
+    int t;
 
-        FILE *fp;
-
-        fp = fopen(fileNames[i], "rb");
-
+    if (signals[fileCurrentlyProcessed].done == true) {  /* if no more data to process in current file */  
         
+        if (fileCurrentlyProcessed == nFiles - 1) {       /* if current file is the last file to be processed */
+            if ((pthread_mutex_unlock (&accessCR)) != 0) {              /* exit monitor */                                         
+                perror ("error on exiting monitor(CF)");                /* save error in errno */
+                int status = EXIT_FAILURE;                              
+                pthread_exit(&status);
+            }
+            return 1;                                                      /* end */
+        }
+        
+        fileCurrentlyProcessed++;       /* next file to process */
+        firstProcessing = true;
+    }  
 
+    if (firstProcessing == true) {               /* if first time processing the current file */
+
+        FILE *fp;                                                     /* file to process */
+        fp = fopen(fileNamesRegion[fileCurrentlyProcessed], "rb");   
         if (fp == NULL) { 
             printf("Cannot open file \n"); 
             exit(0); 
         } 
 
-        int nElements;
+        signals[fileCurrentlyProcessed].fileId = fileCurrentlyProcessed;
+
+        int nElements;                                   /* length of the signals */
         fread(&nElements, sizeof(int), 1, fp);
 
-        signals[i].x = (double*)malloc(sizeof(double) * nElements);
-        signals[i].y = (double*)malloc(sizeof(double) * nElements);
-        signals[i].xy = (double*)malloc(sizeof(double) * nElements);
-        signals[i].xyCorrect = (double*)malloc(sizeof(double) * nElements);
-
-    
-        double elementsX[nElements];
+        signals[fileCurrentlyProcessed].signalLenght = nElements;
+        signals[fileCurrentlyProcessed].point = 0;
+        signals[fileCurrentlyProcessed].x = (double*)malloc(sizeof(double) * nElements);
+        signals[fileCurrentlyProcessed].y = (double*)malloc(sizeof(double) * nElements);
+        signals[fileCurrentlyProcessed].xy = (double*)malloc(sizeof(double) * nElements);
+        signals[fileCurrentlyProcessed].xyCorrect = (double*)malloc(sizeof(double) * nElements);
+        
+        double elementsX[nElements];                                           /* signal X */
         fread(elementsX, sizeof (double), nElements, fp);
+        for(t=0; t<nElements; t++) signals[fileCurrentlyProcessed].x[t] = elementsX[t];
 
-        double elementsY[nElements];
+        double elementsY[nElements];                                  /* signal Y */
         fread(elementsY, sizeof (double), nElements, fp);
-
-
-
-        signals[i].signalSize = nElements;
+        for(t=0; t<nElements; t++) signals[fileCurrentlyProcessed].y[t] = elementsY[t];
         
-
-
-        for(int t=0;t<nElements;t++) signals[i].x[t] = elementsX[t];
-
-
-
-        for(int t=0;t<nElements;t++) signals[i].y[t] = elementsY[t];
-        
-
-        signals[i].point = 0;
-
         fclose(fp);
 
-        FILE *fp2;
-
-        char name[16];
-        sprintf(name, "newSigVal0%c.bin", fileNames[i][7]);
-;
-        fp2 = fopen(name, "rb");
-
-        if (fp2 == NULL) { 
-            printf("Error %s",name);
+        FILE *fpResult;                                  /* file with correct result */
+        char fileResult[16];
+        sprintf(fileResult, "newSigVal0%c.bin", fileNamesRegion[fileCurrentlyProcessed][7]);
+        fpResult= fopen(fileResult, "rb");
+        if (fpResult == NULL) { 
+            printf("Error %s",fileResult);
             exit(0); 
         } 
-        int n;
-        fread(&n, sizeof(int), 1, fp);
-        double X[n];
-        fread(X, sizeof (double), n, fp);
-        double Y[n];
-        fread(Y, sizeof (double), n, fp);
-        double XY[n];
-        fread(XY, sizeof (double), n, fp);
 
-        for(int t=0;t<nElements;t++) signals[i].xyCorrect[t] = XY[t];
-
-        fclose(fp2);
-   
-    }
-
-
-    empty = false;                                                                      
-
-    if ((pthread_cond_signal (&regionEmpty)) != 0) {                                                           
-       perror ("error on signaling regionEmpty");
-       int status = EXIT_FAILURE;
-       pthread_exit(&status);
-    }
-
-    if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                           
-       perror ("error on exiting monitor(CF)");
-       int status = EXIT_FAILURE;
-       pthread_exit(&status);
-    }
-
-    //free(signals);
-    //free(signals[0].x);
-
-    
-
-    printf("Done storing files.\n");
-
-    
-}
-
-int processConvPoint(int threadId, int *fileId, int *n, double **x, double **y, int *point) {
-
-
-    if ((pthread_mutex_lock (&accessCR)) != 0) {                                                           
-        perror ("error on entering monitor(CF)");
-        int status = EXIT_FAILURE;
-        pthread_exit(&status);
-    }
-
-    pthread_once (&init, initialization);                                           
-
-    while (empty)                                          
-    { if ((pthread_cond_wait (&regionEmpty, &accessCR)) != 0) {                                                           
-        perror ("error waiting on regionEmpty");
-        int status = EXIT_FAILURE;
-        pthread_exit(&status);
-        }
-    }   
-
-    if (signals[fileCurrentlyProcessed].point == signals[fileCurrentlyProcessed].signalSize) {
+        fseek(fpResult, sizeof (int) + 2 * (nElements * sizeof (double)), SEEK_SET );  /* fg to where XY is stored */
         
-        if (fileCurrentlyProcessed == nFiles - 1) {
-            if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                           
-                perror ("error on exiting monitor(CF)");
-                int status = EXIT_FAILURE;
-                pthread_exit(&status);
-            }
-            return 1;
-        }
-        else {
-            fileCurrentlyProcessed++;
-            
-        }
-    }   
+        double elementsXY[nElements];                                  /* correct signal XY */
+        fread(elementsXY, sizeof (double), nElements, fp);
+        for(t=0; t<nElements; t++) signals[fileCurrentlyProcessed].xyCorrect[t] = elementsXY[t];
+        
+        fclose(fpResult);
 
-    double* tmpX = calloc(signals[fileCurrentlyProcessed].signalSize, sizeof(double));
-    double* tmpY = calloc(signals[fileCurrentlyProcessed].signalSize, sizeof(double));
+        firstProcessing = false;
+    }
+ 
+    
+    double* tmpX = calloc(signals[fileCurrentlyProcessed].signalLenght, sizeof(double));
+    double* tmpY = calloc(signals[fileCurrentlyProcessed].signalLenght, sizeof(double));
 
 
-    *point = signals[fileCurrentlyProcessed].point;   
+    *point = signals[fileCurrentlyProcessed].point;  
+    *n = signals[fileCurrentlyProcessed].signalLenght; 
+    *fileId = fileCurrentlyProcessed;
 
     //printf("worker: %d, point: %d\n", threadId, signals[fileCurrentlyProcessed].point);
-
-    *n = signals[fileCurrentlyProcessed].signalSize;
-
-
     
-    *fileId = fileCurrentlyProcessed;
-    
-    for(int t=0;t<*n;t++) *(tmpX+t) = signals[fileCurrentlyProcessed].x[t];
-    for(int t=0;t<*n;t++) *(tmpY+t) = signals[fileCurrentlyProcessed].y[t];
-
-    signals[fileCurrentlyProcessed].point++;
+    for(t=0; t<signals[fileCurrentlyProcessed].signalLenght; t++) *(tmpX+t) = signals[fileCurrentlyProcessed].x[t];
+    for(t=0; t<signals[fileCurrentlyProcessed].signalLenght; t++) *(tmpY+t) = signals[fileCurrentlyProcessed].y[t];
 
     free(*x);
+    free(*y);
+
+    *y = tmpY;
     *x = tmpX;
 
-    free(*y);
-    *y = tmpY;
+    signals[fileCurrentlyProcessed].point++;                                 /* increment point of process */
 
-    if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                           
-        perror ("error on exiting monitor(CF)");
+    if (signals[fileCurrentlyProcessed].point == signals[fileCurrentlyProcessed].signalLenght) signals[fileCurrentlyProcessed].done = true; /* if last point of process */
+
+    if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                  /* exit */    
+        perror ("error on exiting monitor(CF)");                                        /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
 
     return 0;
-
 }
 
 
-void savePartialResult (int threadId, int fileId, int point, double val) {
+/**
+ *  \brief Save the convolution point that was processed
+ *
+ *  Operation carried out by workers.
+ */
 
-    if ((pthread_mutex_lock (&accessCR)) != 0) {                                                           
-        perror ("error on entering monitor(CF)");
+void savePartialResult(int threadId, int fileId, int point, double val) {
+
+    if ((pthread_mutex_lock (&accessCR)) != 0) {                     /* enter monitor */        
+        perror ("error on entering monitor(CF)");                   /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
 
-    pthread_once (&init, initialization);                                           
+    signals[fileId].xy[point] = val;           /* store value */
 
-    signals[fileId].xy[point] = val;
-
-
-    if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                           
-        perror ("error on exiting monitor(CF)");
+    if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                  /* exit */    
+        perror ("error on exiting monitor(CF)");                                        /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
-    
+
 }
+
+
+/**
+ *  \brief check if all the convolution points processed were correctly computed
+ *
+ *  Operation carried out by main thread.
+ */
 
 void checkProcessingResults() {
 
-    for(int i=0;i<nFiles;i++) {
-        for(int t=0;t<signals[i].signalSize;t++) {
-            if(signals[i].xy[t]!=signals[i].xyCorrect[t]) printf("Incorrect: %f\n",signals[i].xyCorrect[t]);
+    if ((pthread_mutex_lock (&accessCR)) != 0) {                     /* enter monitor */        
+        perror ("error on entering monitor(CF)");                   /* save error in errno */
+        int status = EXIT_FAILURE;
+        pthread_exit(&status);
+    }
+
+    for(int i=0; i<nFiles; i++) {   /* check results for all files */
+        for(int t=0; t<signals[i].signalLenght; t++) {
+            if(signals[i].xy[t]!=signals[i].xyCorrect[t]) printf("Incorrect: %f\n",signals[i].xyCorrect[t]);  /* confirm if calculated value is correct */
         }
     }
 
-    /**
-    FILE *fp;
-    for(int i=0;i<nFiles;i++) {
-        
-        fp = fopen(fileNamesRegion[i], "ab");
-        if (fp == NULL) { 
-            printf("Cannot open file \n"); 
-            exit(0); 
-        } 
+    free(signals);                    /* free allocated memory */
+    free(fileNamesRegion);            /* free allocated memory */
 
-        for(int t=0;t<signals[i].signalSize;t++) fwrite((const void*) & signals[i].xy[t],sizeof(double),1,fp);
-
-        fclose(fp);
+    if ((pthread_mutex_unlock (&accessCR)) != 0) {                                                  /* exit */    
+        perror ("error on exiting monitor(CF)");                                        /* save error in errno */
+        int status = EXIT_FAILURE;
+        pthread_exit(&status);
     }
-    **/
+
 }
