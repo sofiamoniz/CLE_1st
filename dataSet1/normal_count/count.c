@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
             printf("Can't open %s for reading.\n", argv[i]);
             return 1;}
         for (wchar_t c; (c = fgetwc(f)) != WEOF;){
+            printf("%d\n", c);
             //first, we do the conversion - if char is not
             //multibyte, it will remain unibyte
             char converted_char = convert_multibyte(c);

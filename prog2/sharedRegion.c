@@ -173,26 +173,16 @@ int processConvPoint(int threadId, int *fileId, int *n, double **x, double **y, 
 
         firstProcessing = false;
     }
+
  
-    
-    double* tmpX = calloc(signals[fileCurrentlyProcessed].signalLenght, sizeof(double));
-    double* tmpY = calloc(signals[fileCurrentlyProcessed].signalLenght, sizeof(double));
-
-
     *point = signals[fileCurrentlyProcessed].point;  
     *n = signals[fileCurrentlyProcessed].signalLenght; 
     *fileId = fileCurrentlyProcessed;
 
     //printf("worker: %d, point: %d\n", threadId, signals[fileCurrentlyProcessed].point);
     
-    for(t=0; t<signals[fileCurrentlyProcessed].signalLenght; t++) *(tmpX+t) = signals[fileCurrentlyProcessed].x[t];
-    for(t=0; t<signals[fileCurrentlyProcessed].signalLenght; t++) *(tmpY+t) = signals[fileCurrentlyProcessed].y[t];
-
-    free(*x);                        /* reallocate X */
-    free(*y);                       /* reallocate Y */
-
-    *y = tmpY;
-    *x = tmpX;
+    *x = signals[fileCurrentlyProcessed].x;
+    *y = signals[fileCurrentlyProcessed].y;
 
     signals[fileCurrentlyProcessed].point++;                                 /* increment point of process */
 

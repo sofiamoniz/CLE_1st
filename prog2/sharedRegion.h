@@ -1,5 +1,5 @@
 /**
- *  \brief Store a value in the data transfer region.
+ *  \brief Store filenames and signals.
  *
  *  Operations carried out by main thread and workers.
  *
