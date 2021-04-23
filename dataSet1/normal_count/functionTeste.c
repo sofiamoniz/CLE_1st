@@ -2,6 +2,8 @@
 #include <wchar.h>
 #include <locale.h>
 #include "functions.h"
+#include <string.h>
+
 //https://stackoverflow.com/questions/13238388/remove-letter-accents-from-a-given-text
 
 int main(int argc, char **argv){
@@ -10,12 +12,29 @@ int main(int argc, char **argv){
     if (!f)
         return 1;
 
+    char str[50];
+    char converted_char = 'a';
+    strncat(str, &converted_char, 1);
+    
+    strncat(str, &converted_char, 1);
+
+    printf("%s ",str);
+    int len = strlen(str);  
+    printf("%d ", len);
+
+    char *str_array[50];
+    str_array[0] = "ola";
+    str_array[1]="adeus";
+    int num = sizeof(str_array) / sizeof(str_array[0]);
+    printf("%d ", num);
+
+
+
     for (wchar_t c; (c = fgetwc(f)) != WEOF;){
         
         //wprintf(L"%lc", c);
         char new_char = convert_multibyte('1');
-        printf("  %d", is_alpha_underscore(new_char));
-        printf('-' == '—');
+        
         
 
     }

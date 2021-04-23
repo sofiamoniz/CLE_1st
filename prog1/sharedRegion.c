@@ -27,6 +27,10 @@
 #include <string.h>
 #include <wchar.h>
 #include <locale.h>
+#include "functions2.h"
+
+char str[50]; /* inicialize str */
+
 
 /** \brief file names storage region */
 static char ** fileNamesRegion;
@@ -138,7 +142,7 @@ void storeFileNames(int nFileNames, char *fileNames[]) {
  *  Operation carried out by workers.
  */
 
-int getDataChunk(int threadId, wchar_t **buf, PARTFILEINFO *partialInfo) {
+int getDataChunk(int threadId, char *buf[12], PARTFILEINFO *partialInfo) {
 
     if ((pthread_mutex_lock (&accessCR)) != 0) {                     /* enter monitor */        
         perror ("error on entering monitor(CF)");                   /* save error in errno */
@@ -190,12 +194,49 @@ int getDataChunk(int threadId, wchar_t **buf, PARTFILEINFO *partialInfo) {
     if (firstProcessing==true) firstProcessing = false;
     
     wchar_t c;
+    
+    //char *buf[12]; /* buff contains a group of 12 complete words */
+    char *words_array[12];
     c = fgetwc(f);    /* get next char */
+    char converted_char = convert_multibyte_char(c);
+    
+    if(is_space_separation_punctuation_char(converted_char) == 0 && is_apostrophe_char(converted_char) == 0){ /* if is not end of word, construct word */
+        //printf("char %c ", converted_char);
+        if(strlen(str) <= 50){
+            strncat(str, &converted_char, 1); /* construct word with max len=50 chars */
+            //printf("STRING %s | ", str);
+        }
+        
+    }
+    else{ //chegou ao fim da palavra -> adicionar string ao buffer e limpar str para começar a construir uma nova
+        if(size_of_array(words_array)<12){
+            for(int i = 0; i<12; i++){
+                if(words_array[i] == NULL){ //quando encontrar um espaço vago, põe lá a string e faz break para sair do for
+                    words_array[i] = str;
+                    memset(str, 0, strlen(str)); //isto estraga mas eu preciso de a esvaziar ;_;
+                    break;
+                }
+            }
+        }
+        else{
+            //como o array está cheio, esvazia-se e coloca-se a palavra na primeira posição
+            memset(words_array, 0, sizeof words_array);
+            words_array[0] = str;
+            memset(str, 0, strlen(str));
+        }
+        
+    }
+
+    printf("%s ", words_array[0]); //porque é q isto é null ?????
+
     pos = ftell(f);   /* current position of file reading */
 
     fclose(f);
 
-    *buf = c;  /* o buffer supostamente tem de ser um array de carateres mas eu so passei 1 aqui , temos de mudar */
+    //*buf = c;  /* o buffer supostamente tem de ser um array de carateres mas eu so passei 1 aqui , temos de mudar */
+
+    buf = words_array;
+
 
     if ( c == WEOF)  { /* if last character of current file */
         partfileinfos[fileCurrentlyProcessed].done = true;   /* done processing current file */

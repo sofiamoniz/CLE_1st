@@ -88,41 +88,45 @@ int main(int argc, char *argv[]){
  *
  */
 
-void processDataChunk(wchar_t c, PARTFILEINFO *partialInfo) {
-            //first, we do the conversion - if char is not
-            //multibyte, it will remain unibyte
-    char converted_char = convert_multibyte(c);
+void processDataChunk(char buff[12], PARTFILEINFO *partialInfo) {
+    //first, we do the conversion - if char is not
+    //multibyte, it will remain unibyte
+    //char converted_char = convert_multibyte(c);
             //printf("  %c", new_char);
-           
-    if(!(*partialInfo).in_word){
-        if(is_alpha_underscore(converted_char)){
-            (*partialInfo).in_word = 1;
-            (*partialInfo).n_words++;
-            (*partialInfo).n_chars++;
-            (*partialInfo).n_consonants = (*partialInfo).n_consonants + !is_vowel(converted_char);
-        }
-        else if(is_apostrophe(converted_char) || is_space_separation_punctuation(converted_char)){
-            return;
-        }
-    }
-    else{
-        if(is_alpha_underscore(converted_char)){
-            (*partialInfo).n_chars++;
-            (*partialInfo).n_consonants = (*partialInfo).n_consonants + !is_vowel(converted_char);
-        }
-        else if(is_apostrophe(converted_char)){
-            return;
-        }
-        else if(is_space_separation_punctuation(converted_char)){
-            (*partialInfo).in_word = 0;
-            (*partialInfo).counting_array[(*partialInfo).n_chars-1][(*partialInfo).n_consonants]++;
-            if((*partialInfo).n_chars > (*partialInfo).max_chars){
-                (*partialInfo).max_chars = (*partialInfo).n_chars;
+    for(int i =0; i<12; i++){
+        char converted_char = buff[i];
+        //printf("(%c)",converted_char);
+        if(!(*partialInfo).in_word){
+            if(is_alpha_underscore(converted_char)){
+                (*partialInfo).in_word = 1;
+                (*partialInfo).n_words++;
+                (*partialInfo).n_chars++;
+                (*partialInfo).n_consonants = (*partialInfo).n_consonants + !is_vowel(converted_char);
             }
-            (*partialInfo).n_chars = 0;
-            (*partialInfo).n_consonants = 0;
+            else if(is_apostrophe(converted_char) || is_space_separation_punctuation(converted_char)){
+                return;
+            }
+        }
+        else{
+            if(is_alpha_underscore(converted_char)){
+                (*partialInfo).n_chars++;
+                (*partialInfo).n_consonants = (*partialInfo).n_consonants + !is_vowel(converted_char);
+            }
+            else if(is_apostrophe(converted_char)){
+                return;
+            }
+            else if(is_space_separation_punctuation(converted_char)){
+                (*partialInfo).in_word = 0;
+                (*partialInfo).counting_array[(*partialInfo).n_chars-1][(*partialInfo).n_consonants]++;
+                if((*partialInfo).n_chars > (*partialInfo).max_chars){
+                    (*partialInfo).max_chars = (*partialInfo).n_chars;
+                }
+                (*partialInfo).n_chars = 0;
+                (*partialInfo).n_consonants = 0;
+            }
         }
     }
+    
 
 }
 
@@ -138,13 +142,13 @@ static void *worker (void *par) {
 
     unsigned int id = *((unsigned int *) par);              /* worker id */
 
-    wchar_t *buff;      /* agr é um char mas tem de ser um buffer de carateres */
+    char buff[12];      /* agr é um char mas tem de ser um buffer de carateres */
 
     PARTFILEINFO partialInfo;     /* struct to store partial info of current file being processed */
 
-    while (getDataChunk(id, &buff, &partialInfo) != 1) {        /* while data available */ 
-        wchar_t c = buff;
-        processDataChunk(c, &partialInfo);        /* process current data*/
+    while (getDataChunk(id, buff, &partialInfo) != 1) {        /* while data available */ 
+        //wchar_t c = buff;
+        processDataChunk(buff, &partialInfo);        /* process current data*/
         savePartialResults(id, &partialInfo);         /* save in shared region */ 
     }
     
