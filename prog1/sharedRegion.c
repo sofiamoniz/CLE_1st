@@ -204,6 +204,7 @@ int getDataChunk(int threadId, char *buf, PARTFILEINFO *partialInfo) {
 
     char converted_char = convert_multibyte_char(c);
     
+    /*
      if(readen_chars<12){
         //printf("readen chars -> %d \n",readen_chars);
         //printf("converted_char -> %c \n",converted_char);
@@ -217,9 +218,8 @@ int getDataChunk(int threadId, char *buf, PARTFILEINFO *partialInfo) {
         buf[readen_chars] = converted_char;
         readen_chars++;
     }
+    */
     
-
-   /*
     if(readen_chars<12){
         //printf("readen chars -> %d \n",readen_chars);
         //printf("converted_char -> %c \n",converted_char);
@@ -238,9 +238,11 @@ int getDataChunk(int threadId, char *buf, PARTFILEINFO *partialInfo) {
         else{
             memset(buf, 0, 62);
             readen_chars = 0;
+            buf[readen_chars] = converted_char;
+            readen_chars++;
         }
     }
-    */
+
     
     fclose(f);
     //buf = tmp_buf;  /* o buffer supostamente tem de ser um array de carateres mas eu so passei 1 aqui , temos de mudar */
