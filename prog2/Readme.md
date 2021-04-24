@@ -21,4 +21,4 @@ gcc -Wall -o main main.c sharedRegion.c -lpthread -lm
 
 ## Developed by
 
-Grupo 1 - Alina Yanchuk e Sofia Moniz
+Grupo 1 - Alina Yanchuk e Ana Sofia Fernandes
