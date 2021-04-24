@@ -4,6 +4,10 @@
 #include "functions.h"
 //https://stackoverflow.com/questions/13238388/remove-letter-accents-from-a-given-text
 
+void teste(char * temp_buf)
+{
+    printf("lol -> %c ", temp_buf[0]);
+}
 int main(int argc, char **argv){
     setlocale(LC_CTYPE, "");
     FILE *f = fopen(argv[1], "r");
@@ -14,8 +18,14 @@ int main(int argc, char **argv){
         
         //wprintf(L"%lc", c);
         char new_char = convert_multibyte('1');
-        printf("  %d", is_alpha_underscore(new_char));
-        printf('-' == '—');
+        //printf("  %d", is_alpha_underscore(new_char));
+        //printf('-' == '—');
+        char tmp_buf[12]; /* buffer has size of 12 bytes + max_word_size -> this way,*/
+        tmp_buf[0] = 'o';
+        char *lol;
+        lol = tmp_buf;
+        printf("%lu ", sizeof(lol));
+        teste(lol);
         
 
     }

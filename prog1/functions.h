@@ -137,3 +137,11 @@ int is_apostrophe(unsigned char c){
         return 0;
     }
 }
+
+int size_of_array(char *char_array){
+    int i = 0;
+    while (char_array[i] != NULL) {
+        i++;
+    }
+    return i;
+}

@@ -144,7 +144,7 @@ void storeFileNames(int nFileNames, char *fileNames[]) {
  *  Operation carried out by workers.
  */
 
-int getDataChunk(int threadId, char (buf)[MAX_BYTES_READ+MAX_WORD_SIZE], PARTFILEINFO *partialInfo) {
+int getDataChunk(int threadId, char *buf, PARTFILEINFO *partialInfo) {
 
     if ((pthread_mutex_lock (&accessCR)) != 0) {                     /* enter monitor */        
         perror ("error on entering monitor(CF)");                   /* save error in errno */
@@ -196,36 +196,54 @@ int getDataChunk(int threadId, char (buf)[MAX_BYTES_READ+MAX_WORD_SIZE], PARTFIL
     if (firstProcessing==true) firstProcessing = false;
     
     
-    char tmp_buf[MAX_BYTES_READ+MAX_WORD_SIZE]; /* buffer has size of 12 bytes + max_word_size -> this way,
-                                    we prevent the case where the last word that was readen is not complete */
+    //char tmp_buf[MAX_BYTES_READ+MAX_WORD_SIZE]; /* buffer has size of 12 bytes + max_word_size -> this way,
+                                    //we prevent the case where the last word that was readen is not complete */
     wchar_t c;
     c = fgetwc(f);    /* get next char */
     pos = ftell(f);   /* current position of file reading */
 
     char converted_char = convert_multibyte_char(c);
+    
+     if(readen_chars<12){
+        //printf("readen chars -> %d \n",readen_chars);
+        //printf("converted_char -> %c \n",converted_char);
+        buf[readen_chars] = converted_char;
+        //printf("tmp_buf[readen_chars] -> %c \n",buf[readen_chars]);
+        readen_chars++;
+    }
+    else{
+        memset(buf, 0, 12);
+        readen_chars = 0;
+        buf[readen_chars] = converted_char;
+        readen_chars++;
+    }
+    
 
+   /*
     if(readen_chars<12){
-        printf("readen chars -> %d \n",readen_chars);
-        printf("converted_char -> %c \n",converted_char);
-        tmp_buf[readen_chars] = converted_char;
-        printf("tmp_buf[readen_chars] -> %c \n",tmp_buf[readen_chars]);
+        //printf("readen chars -> %d \n",readen_chars);
+        //printf("converted_char -> %c \n",converted_char);
+        buf[readen_chars] = converted_char;
+        //printf("tmp_buf[readen_chars] -> %c \n",buf[readen_chars]);
         readen_chars++;
     }
     else{
         if(is_space_separation_punctuation_char(converted_char) == 0 && is_apostrophe_char(converted_char) == 0){
-            printf("ELSEEE readen chars -> %d \n",readen_chars);
-            printf("ELSEEE converted_char -> %c \n",converted_char);
-            printf("ELSEEE tmp_buf[readen_chars] -> %c \n",tmp_buf[readen_chars]);
-            tmp_buf[readen_chars] = converted_char;
+            //printf("ELSEEE readen chars -> %d \n",readen_chars);
+            //printf("ELSEEE converted_char -> %c \n",converted_char);
+            //printf("ELSEEE tmp_buf[readen_chars] -> %c \n",buf[readen_chars]);
+            buf[readen_chars] = converted_char;
             readen_chars++;
         }
         else{
-            memset(tmp_buf, 0, sizeof tmp_buf);
+            memset(buf, 0, 62);
             readen_chars = 0;
         }
     }
+    */
+    
     fclose(f);
-    buf = tmp_buf;  /* o buffer supostamente tem de ser um array de carateres mas eu so passei 1 aqui , temos de mudar */
+    //buf = tmp_buf;  /* o buffer supostamente tem de ser um array de carateres mas eu so passei 1 aqui , temos de mudar */
 
    
     

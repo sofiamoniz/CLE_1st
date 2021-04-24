@@ -88,15 +88,15 @@ int main(int argc, char *argv[]){
  *
  */
 
-void processDataChunk(char (buf)[12+50], PARTFILEINFO *partialInfo) {
+void processDataChunk(char *buf, PARTFILEINFO *partialInfo) {
             //first, we do the conversion - if char is not
             //multibyte, it will remain unibyte
     //char converted_char = convert_multibyte(c);
             //printf("  %c", new_char);
     char converted_char;
-    for(int i=0; i<15;i++){
+    int buf_size = size_of_array(buf);
+    for(int i=0; i<buf_size;i++){
         converted_char = buf[i];
-        printf("CONVERTED->  %c", converted_char);
     }
            
     if(!(*partialInfo).in_word){
@@ -144,16 +144,13 @@ static void *worker (void *par) {
     unsigned int id = *((unsigned int *) par);              /* worker id */
 
     //wchar_t *buff;      /* agr é um char mas tem de ser um buffer de carateres */
-    char buff[12+50];
+    char buf[62];
 
     PARTFILEINFO partialInfo;     /* struct to store partial info of current file being processed */
 
-    while (getDataChunk(id, buff, &partialInfo) != 1) {        /* while data available */ 
+    while (getDataChunk(id, buf, &partialInfo) != 1) {        /* while data available */ 
         //wchar_t c = buff;
-        for(int i=0; i<15;i++){
-            //printf("CONVERTED->  %c", buff[i]);
-        }
-        processDataChunk(buff, &partialInfo);        /* process current data*/
+        processDataChunk(buf, &partialInfo);        /* process current data*/
         savePartialResults(id, &partialInfo);         /* save in shared region */ 
     }
     
