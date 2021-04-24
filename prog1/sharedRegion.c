@@ -15,7 +15,7 @@
  *     \li savePartialResults
  * 
  *
- *  \author Alina Yanchuk e Sofia Moniz
+ *  \author Alina Yanchuk e Ana Sofia Moniz Fernandes
  */
 
 #include <stdio.h>
@@ -27,6 +27,8 @@
 #include <string.h>
 #include <wchar.h>
 #include <locale.h>
+#include "sharedRegion_functions.h"
+
 
 /** \brief file names storage region */
 static char ** fileNamesRegion;
@@ -40,6 +42,10 @@ bool firstProcessing = true;
 /** \brief file being currently processed */
 int fileCurrentlyProcessed = 0;
 
+/* variables used to construct the chunks */
+int readen_chars = 0;
+int MAX_SIZE_WRD = 50;
+int MAX_BYTES_READ = 12;
 
 /** \brief struct to store data of one file*/
 typedef struct {
@@ -138,7 +144,7 @@ void storeFileNames(int nFileNames, char *fileNames[]) {
  *  Operation carried out by workers.
  */
 
-int getDataChunk(int threadId, wchar_t **buf, PARTFILEINFO *partialInfo) {
+int getDataChunk(int threadId, char *buf, PARTFILEINFO *partialInfo) {
 
     if ((pthread_mutex_lock (&accessCR)) != 0) {                     /* enter monitor */        
         perror ("error on entering monitor(CF)");                   /* save error in errno */
@@ -188,15 +194,40 @@ int getDataChunk(int threadId, wchar_t **buf, PARTFILEINFO *partialInfo) {
 
     if (firstProcessing==false) fseek(f, pos, SEEK_SET );  /* go to position where stopped read last time */
     if (firstProcessing==true) firstProcessing = false;
-    
+
     wchar_t c;
     c = fgetwc(f);    /* get next char */
     pos = ftell(f);   /* current position of file reading */
 
+    /*first, we do the conversion - if char is not
+    multibyte, it will remain unibyte*/
+    char converted_char = convert_multibyte(c);
+  
+    /* if the number of chars read are still less than MAX_BYTES_READ, they can go directly to the buffer */
+    if(readen_chars<MAX_BYTES_READ){
+        buf[readen_chars] = converted_char;
+        readen_chars++;
+    }
+    /* otherwise, there are two cases that can happen:
+        1 - the char is not end of word -> we don't want to break words, so we add it to the array (using the extra space
+        MAX_SIZE_WRD, that is there for this cases where the word is still not completed) 
+        2- the char is end of word -> the buffer needs to be emptied and another word is starting
+    */
+    else{
+        if(is_end_of_word(converted_char) == 0){
+            buf[readen_chars] = converted_char;
+            readen_chars++;
+        }
+        else{
+            memset(buf, 0, MAX_BYTES_READ+MAX_SIZE_WRD);
+            readen_chars = 0;
+            buf[readen_chars] = converted_char;
+            readen_chars++;
+        }
+    }
+
     fclose(f);
-
-    *buf = c;  /* o buffer supostamente tem de ser um array de carateres mas eu so passei 1 aqui , temos de mudar */
-
+    
     if ( c == WEOF)  { /* if last character of current file */
         partfileinfos[fileCurrentlyProcessed].done = true;   /* done processing current file */
     }

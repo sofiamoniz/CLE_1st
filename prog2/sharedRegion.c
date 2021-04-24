@@ -15,7 +15,7 @@
  * 
  * 
  *
- *  \author Alina Yanchuk e Sofia Moniz
+ *  \author Alina Yanchuk e Ana Sofia Moniz Fernandes
  */
 
 #include <stdio.h>

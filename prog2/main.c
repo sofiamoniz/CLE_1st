@@ -5,7 +5,7 @@
  *
  *  Synchronization based on monitors (Lampson / Redell)  - Main program
  *
- *  \author Alina Yanchuk e Sofia Moniz
+ *  \author Alina Yanchuk e Ana Sofia Moniz Fernandes
  */
 
 #include <stdio.h>

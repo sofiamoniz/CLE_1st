@@ -5,7 +5,7 @@
  *
  *  Synchronization based on monitors (Lampson / Redell)  - Main program
  *
- *  \author Alina Yanchuk e Sofia Moniz
+ *  \author Alina Yanchuk e Ana Sofia Moniz Fernandes
  */
 
 #include <stdio.h>
@@ -17,7 +17,11 @@
 #include <time.h>
 
 #include "sharedRegion.h"
-#include "functions.h"
+#include "main_functions.h"
+
+/* variables to define the size of the buffer */
+int MAX_SIZE_WORD = 50;
+int MAX_BYTES_TO_READ = 12;
 
 /** \brief worker life cycle routine */
 static void *worker (void *id);
@@ -84,15 +88,24 @@ int main(int argc, char *argv[]){
 /**
  *  \brief Function processDataChunk.
  *
- *  Processing of a data chunk. Precisa de comentários. 
+ *  Processing of a data chunk. The approach given by the professor was followed:
+ *      -If in_word is false:
+ *          -if the char is alphanumeric or underscore, in_word is set to true, and we increment the total words, total
+ *              num of chars and the number of consonants
+ *          -if the char is apostrophe or space/separation/punctiation, in_word remains set to false
+ *      -If in_word is true:
+ *          -if the char is alpha or underscore, we increment chars and consonants;
+ *          -if char is apostrophe, we return;
+ *          -if char is space/separation/punctiation, we set in_word to false and update the word couting
  *
  */
 
-void processDataChunk(wchar_t c, PARTFILEINFO *partialInfo) {
-            //first, we do the conversion - if char is not
-            //multibyte, it will remain unibyte
-    char converted_char = convert_multibyte(c);
-            //printf("  %c", new_char);
+void processDataChunk(char *buf, PARTFILEINFO *partialInfo) {
+    char converted_char;
+    int buf_size = size_of_array(buf);
+    for(int i=0; i<buf_size;i++){
+        converted_char = buf[i];
+    }
            
     if(!(*partialInfo).in_word){
         if(is_alpha_underscore(converted_char)){
@@ -138,13 +151,14 @@ static void *worker (void *par) {
 
     unsigned int id = *((unsigned int *) par);              /* worker id */
 
-    wchar_t *buff;      /* agr é um char mas tem de ser um buffer de carateres */
+    /* buffer has size of MAX_BYTES_TO_READ bytes + MAX_SIZE_WORD -> this way,
+    we prevent the case where the last word that was readen is not complete. It will be a set of complete words. */
+    char buf[MAX_BYTES_TO_READ+MAX_SIZE_WORD];
 
     PARTFILEINFO partialInfo;     /* struct to store partial info of current file being processed */
 
-    while (getDataChunk(id, &buff, &partialInfo) != 1) {        /* while data available */ 
-        wchar_t c = buff;
-        processDataChunk(c, &partialInfo);        /* process current data*/
+    while (getDataChunk(id, buf, &partialInfo) != 1) {        /* while data available */ 
+        processDataChunk(buf, &partialInfo);        /* process current data*/
         savePartialResults(id, &partialInfo);         /* save in shared region */ 
     }
     
